@@ -1,5 +1,5 @@
 # graph_runner.py
-from .langgraph_setup import jailbreak_graph, JailbreakAttemptState # Assuming graph is compiled here
+from langgraph_setup import jailbreak_graph, JailbreakAttemptState
 import json
 import os
 from datetime import datetime
@@ -11,7 +11,9 @@ def run_single_jailbreak_attempt(
     task: dict, 
     strategy: dict, 
     target_model_name: str, 
-    judge_model_name: str
+    judge_model_name: str,
+    crafter_model_name: str, # New parameter
+    ui_placeholders: dict = None # New parameter for UI elements
 ) -> dict:
     """
     Runs a single task-strategy pair through the jailbreak graph.
@@ -21,7 +23,9 @@ def run_single_jailbreak_attempt(
         strategy=strategy,
         target_model_name=target_model_name,
         judge_model_name=judge_model_name,
-        jailbreak_prompt=None,
+        crafter_model_name=crafter_model_name, # Pass it in
+        ui_placeholders=ui_placeholders or {}, # Pass it in
+        crafted_jailbreak_prompt=None,
         target_llm_response=None,
         final_verdict=None,
         verdict_reasoning=None,
@@ -31,7 +35,6 @@ def run_single_jailbreak_attempt(
 
     final_state = jailbreak_graph.invoke(initial_state)
     
-    # Log the result
     log_entry = {
         "timestamp": datetime.utcnow().isoformat(),
         "task_id": task.get("id"),
@@ -40,7 +43,8 @@ def run_single_jailbreak_attempt(
         "strategy_name": strategy.get("name"),
         "target_model_name": target_model_name,
         "judge_model_name": judge_model_name,
-        "jailbreak_prompt": final_state.get("jailbreak_prompt"),
+        "crafter_model_name": crafter_model_name,
+        "crafted_jailbreak_prompt": final_state.get("crafted_jailbreak_prompt"), # Updated field name
         "target_llm_response": final_state.get("target_llm_response"),
         "final_verdict": final_state.get("final_verdict"),
         "verdict_reasoning": final_state.get("verdict_reasoning"),
