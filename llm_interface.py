@@ -15,9 +15,8 @@ def query_ollama_model(model_name: str, prompt: str, system_message: str = None)
         )
         return response['message']['content']
     except Exception as e:
-        print(f"Error querying Ollama model {model_name}: {e}")
-        return f"Error: Could not get response from {model_name}."
-
-# Example usage (not part of the file, just for illustration)
-# target_response = query_ollama_model("llama3", "What is the capital of France?")
-# print(target_response)
+        # More detailed error logging
+        error_message = f"Error querying Ollama model '{model_name}'. Please ensure Ollama is running and the model is downloaded. Details: {str(e)}"
+        print(error_message)
+        # Re-raise the exception so the calling function knows something went wrong.
+        raise ConnectionError(error_message)
