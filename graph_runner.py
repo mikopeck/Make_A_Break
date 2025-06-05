@@ -27,7 +27,7 @@ def run_single_jailbreak_attempt(
         ui_placeholders=ui_placeholders or {}, # Pass it in
         crafted_jailbreak_prompt=None,
         target_llm_response=None,
-        final_verdict=None,
+        final_rating=None, # Note: key is 'final_rating'
         verdict_reasoning=None,
         error_message=None,
         log=[]
@@ -44,9 +44,9 @@ def run_single_jailbreak_attempt(
         "target_model_name": target_model_name,
         "judge_model_name": judge_model_name,
         "crafter_model_name": crafter_model_name,
-        "crafted_jailbreak_prompt": final_state.get("crafted_jailbreak_prompt"), # Updated field name
+        "crafted_jailbreak_prompt": final_state.get("crafted_jailbreak_prompt"),
         "target_llm_response": final_state.get("target_llm_response"),
-        "final_verdict": final_state.get("final_verdict"),
+        "final_rating": final_state.get("final_rating"), # --- FIX: Use 'final_rating' to match the state ---
         "verdict_reasoning": final_state.get("verdict_reasoning"),
         "error_message": final_state.get("error_message"),
         "detailed_log": final_state.get("log")
@@ -55,4 +55,10 @@ def run_single_jailbreak_attempt(
     with open(RESULTS_LOG_FILE, "a") as f:
         f.write(json.dumps(log_entry) + "\n")
         
-    return log_entry
+    # Return a serializable dictionary, which is what 'log_entry' is
+    result_for_df = log_entry.copy()
+    # The detailed log can be large; maybe exclude it from the immediate in-memory representation
+    result_for_df.pop("detailed_log", None)
+    result_for_df.pop("crafted_jailbreak_prompt", None)
+    result_for_df.pop("target_llm_response", None)
+    return result_for_df

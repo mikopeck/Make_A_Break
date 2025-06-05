@@ -33,7 +33,7 @@ with st.sidebar:
     target_model_name = st.text_input("Target Ollama Model", value="qwen3:8b")
     judge_model_name = st.text_input("Judge Ollama Model", value="qwen3:8b")
     st.markdown("---")
-    st.header("📝 Manage Tasks")
+    st.header("🎯 Manage Tasks")
     with st.expander("Add New Task"):
         new_task_desc = st.text_input("Task Description")
         new_task_id = st.text_input("Unique Task ID", value=f"T_custom_{uuid.uuid4().hex[:6]}")
@@ -76,10 +76,11 @@ st.header("🚀 Run Tests")
 if st.session_state.running_test:
     st.button("🛑 Stop Run", type="primary", on_click=stop_button_callback, use_container_width=True)
 
-comp_mode = st.checkbox("Enable Comprehensive Run Mode", help="...", disabled=st.session_state.running_test)
+comp_mode = st.checkbox("Enable Comprehensive Run Mode", help="This mode runs all strategies against a single task to find the most effective combinations.", disabled=st.session_state.running_test)
 st.markdown("---")
 
-visuals_placeholder = st.container()
+# --- FIX: Use st.empty() for the placeholder to allow it to be replaced ---
+visuals_placeholder = st.empty()
 
 if comp_mode:
     st.subheader("🔬 Comprehensive Run Configuration")
@@ -101,7 +102,7 @@ if comp_mode:
                 "response_display": st.empty(), "judge_status": st.empty(), "verdict_display": st.empty()
             }
         
-        # --- FIX: Access ComprehensiveRunState via the module prefix ---
+        # Access ComprehensiveRunState via the module prefix
         initial_state = comprehensive_runner.ComprehensiveRunState(
             task=task_to_run, all_strategies=st.session_state.strategies, model_config=model_config,
             ui_monitor_placeholders=ui_placeholders,
@@ -111,14 +112,17 @@ if comp_mode:
         )
         
         with st.spinner("Comprehensive run in progress..."):
-            # --- FIX: Access comprehensive_graph via the module prefix ---
+            # Access comprehensive_graph via the module prefix
             final_state = comprehensive_runner.comprehensive_graph.invoke(initial_state)
 
         if final_state.get("was_stopped"): st.warning("Run was stopped by the user.")
         else: st.success("Comprehensive Run Finished!")
         
-        st.session_state.results.extend(final_state.get("probing_results", []))
-        st.session_state.results.extend(final_state.get("final_assault_results", []))
+        # Combine all results generated during the run
+        all_new_results = final_state.get("probing_results", []) + final_state.get("final_assault_results", [])
+        
+        # Add new results to the main session state list
+        st.session_state.results.extend(all_new_results)
         
         st.session_state.running_test = False
         st.rerun()
@@ -170,7 +174,7 @@ else: # Standard Mode
             st.rerun()
 
 st.markdown("---")
-st.header("📝 Test Logs & Results")
+st.header("📊 Test Logs & Results")
 if st.button("Refresh Results from Log File"):
     st.session_state.results = load_results_log("results/jailbreak_log.jsonl")
 

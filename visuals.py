@@ -3,30 +3,32 @@ import streamlit as st
 import pandas as pd
 from typing import List, Dict, Any
 
-def update_visuals(placeholder: st.container, results_data: List[Dict[str, Any]]): # type: ignore
+def update_visuals(placeholder: Any, results_data: List[Dict[str, Any]]):
     """
-    Clears a placeholder and redraws all result visualizations inside it.
+    Clears a placeholder (created with st.empty()) and redraws all result 
+    visualizations inside it.
     """
     if not results_data:
+        placeholder.empty() # Explicitly clear the placeholder if there is no data
         return
 
+    # Use the placeholder.container() context to replace the content of the st.empty() element
     with placeholder.container():
-        st.empty() # Clear previous visuals
-        
         st.markdown("---")
         st.header("📊 Live Results Visualizations")
 
         df_results = pd.DataFrame(results_data)
         
+        # Ensure the rating column exists and is numeric
         if 'final_rating' not in df_results.columns:
             df_results['final_rating'] = -1
         df_results['final_rating'] = pd.to_numeric(df_results['final_rating'], errors='coerce').fillna(-1).astype(int)
 
-        # Filter out results with errors for meaningful visualizations
+        # Filter out results with errors (-1 rating) for meaningful visualizations
         df_viz = df_results[df_results['final_rating'] != -1].copy()
 
         if df_viz.empty:
-            st.warning("No successful results yet to visualize...")
+            st.warning("No valid results with ratings yet to visualize...")
             return
 
         # --- The Visuals ---
@@ -48,17 +50,21 @@ def update_visuals(placeholder: st.container, results_data: List[Dict[str, Any]]
 
         st.subheader("Heatmap: Strategy vs. Task Success")
         if 'strategy_name' in df_viz.columns and 'task_id' in df_viz.columns:
-            try:
-                heatmap_data = df_viz.pivot_table(
-                    index='strategy_name', 
-                    columns='task_id', 
-                    values='final_rating',
-                    aggfunc='mean'
-                ).fillna(0)
+            # Ensure there's enough diversity for a pivot table
+            if df_viz['strategy_name'].nunique() > 0 and df_viz['task_id'].nunique() > 0:
+                try:
+                    heatmap_data = df_viz.pivot_table(
+                        index='strategy_name', 
+                        columns='task_id', 
+                        values='final_rating',
+                        aggfunc='mean'  # Use mean for aggregation
+                    ).fillna(0)
 
-                st.dataframe(
-                    heatmap_data.style.background_gradient(cmap='viridis', axis=None).format("{:.1f}"),
-                    use_container_width=True
-                )
-            except Exception:
-                st.error("Could not generate heatmap.")
+                    st.dataframe(
+                        heatmap_data.style.background_gradient(cmap='viridis', axis=None).format("{:.1f}"),
+                        use_container_width=True
+                    )
+                except Exception as e:
+                    st.error(f"Could not generate heatmap: {e}")
+            else:
+                st.info("Not enough data for a heatmap (need at least one task and one strategy with results).")
